@@ -1,0 +1,40 @@
+name: Build PeakCut Desktop (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [desktop-app]
+    paths:
+      - "studio/**"
+      - "desktop/**"
+      - "requirements.txt"
+      - ".github/workflows/build-windows-desktop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r desktop/requirements.txt
+      - name: Build desktop application
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --name "PeakCut Desktop" --collect-all PySide6 --collect-all sherpa_onnx --collect-all uvicorn --collect-all fastapi --collect-all sqlalchemy --add-data "web;web" --add-data "studio/fonts;studio/fonts" --add-data "studio;studio" --hidden-import studio.desktop --hidden-import studio.server --hidden-import sherpa_onnx --collect-submodules studio desktop/entrypoint.py
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: PeakCut-Desktop-Windows-x64
+          path: "dist/PeakCut Desktop/"
+          if-no-files-found: error
+          retention-days: 14
