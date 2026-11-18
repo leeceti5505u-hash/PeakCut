@@ -31,10 +31,18 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean --windowed --name "PeakCut Desktop" --collect-all PySide6 --collect-all sherpa_onnx --collect-all uvicorn --collect-all fastapi --collect-all sqlalchemy --add-data "web;web" --add-data "studio/fonts;studio/fonts" --add-data "studio;studio" --hidden-import studio.desktop --hidden-import studio.server --hidden-import sherpa_onnx --collect-submodules studio desktop/entrypoint.py
-      - name: Upload Windows build
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = Join-Path $env:ProgramFiles(x86) "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found." }
+          & $iscc "desktop\PeakCutDesktop.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: PeakCut-Desktop-Windows-x64
-          path: "dist/PeakCut Desktop/"
+          name: PeakCut-Desktop-Installer-Windows-x64
+          path: "dist/PeakCut-Desktop-Setup.exe"
           if-no-files-found: error
           retention-days: 14
