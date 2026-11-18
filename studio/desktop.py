@@ -6,11 +6,14 @@ and displays the existing dashboard in a native Qt WebEngine window.
 """
 from __future__ import annotations
 
+import logging
 import socket
 import sys
 import threading
+import traceback
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from PySide6.QtCore import QUrl, Qt, QTimer
 from PySide6.QtGui import QAction
@@ -113,11 +116,33 @@ class PeakCutWindow(QMainWindow):
     def _start_server(self):
         def run_server():
             try:
+                # Uvicorn's bundled default dictConfig formatter can fail in a
+                # frozen PyInstaller build if its formatter class is not resolved.
+                # Use Python's plain logging setup and disable Uvicorn dictConfig.
+                logging.basicConfig(
+                    level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s",
+                )
                 import uvicorn
                 from .server import app
-                uvicorn.run(app, host="127.0.0.1", port=config.PORT, log_level="info")
+                uvicorn.run(
+                    app,
+                    host="127.0.0.1",
+                    port=config.PORT,
+                    log_config=None,
+                    log_level=None,
+                    access_log=False,
+                )
             except Exception as exc:
-                self._server_error = f"{type(exc).__name__}: {exc}"
+                details = traceback.format_exc()
+                try:
+                    log_path = Path(config.DATA_DIR) / "desktop-startup.log"
+                    log_path.parent.mkdir(parents=True, exist_ok=True)
+                    log_path.write_text(details, encoding="utf-8")
+                    log_note = f"\\n\\nFull details saved to:\\n{log_path}"
+                except Exception:
+                    log_note = ""
+                self._server_error = f"{type(exc).__name__}: {exc}{log_note}"
 
         self._server_started_here = True
         self._server_thread = threading.Thread(target=run_server, name="PeakCutServer", daemon=True)
