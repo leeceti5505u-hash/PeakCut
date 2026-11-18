@@ -16,7 +16,6 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 OutputDir=..\dist
 OutputBaseFilename=PeakCut-Desktop-Setup
-SetupIconFile=
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
