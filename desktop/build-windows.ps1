@@ -40,5 +40,16 @@ if ($LASTEXITCODE -ne 0) { throw "Installing requirements failed." }
     desktop\entrypoint.py
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
 
-Write-Host "Build complete: $ProjectRoot\dist\PeakCut Desktop" -ForegroundColor Green
+Write-Host "Building the installer with Inno Setup..." -ForegroundColor Cyan
+$iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+if (-not (Test-Path $iscc)) {
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        choco install innosetup --yes --no-progress
+    }
+}
+if (-not (Test-Path $iscc)) { throw "Inno Setup 6 is required. Install it from https://jrsoftware.org/isinfo.php and rerun this script." }
+& $iscc "desktop\PeakCutDesktop.iss"
+if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+Write-Host "Build complete: $ProjectRoot\dist\PeakCut-Desktop-Setup.exe" -ForegroundColor Green
 Write-Host "FFmpeg is required on PATH. The speech model downloads on first launch."
